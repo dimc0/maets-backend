@@ -21,7 +21,7 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
-  // doublon sur un champ UNIQUE (titre, email...)
+  // doublon refusé par la base (email ou titre déjà pris, jeu déjà possédé)
   if (err instanceof UniqueConstraintError) {
     return res.status(409).json({
       error: { code: 'CONFLICT', message: 'Cette valeur est déjà utilisée' },

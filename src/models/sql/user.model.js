@@ -7,7 +7,7 @@ const User = sequelize.define(
   {
     id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
     email: { type: DataTypes.STRING(191), allowNull: false, unique: true },
-    passwordHash: { type: DataTypes.STRING(100), allowNull: false }, // hash bcrypt
+    passwordHash: { type: DataTypes.STRING(100), allowNull: false },
   },
   { tableName: 'users' },
 );

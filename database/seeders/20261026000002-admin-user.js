@@ -17,7 +17,6 @@ export async function up(queryInterface) {
   );
   const adminId = admins[0].id;
 
-  // L'admin a les deux rôles
   const roles = await queryInterface.sequelize.query("SELECT id FROM roles WHERE name IN ('user', 'admin')", {
     type: queryInterface.sequelize.QueryTypes.SELECT,
   });

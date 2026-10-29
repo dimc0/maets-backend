@@ -26,7 +26,7 @@ async function start() {
     server.headersTimeout = 10000;
     server.keepAliveTimeout = 5000;
 
-    // Arrêt propre : on finit les requêtes en cours, puis on ferme les bases
+    // Arrêt propre (Ctrl+C ou arrêt du serveur) : on finit les requêtes en cours, puis on ferme les bases
     function shutdown() {
       server.close(async () => {
         await sequelize.close();
@@ -35,8 +35,8 @@ async function start() {
         process.exit(0);
       });
     }
-    process.on('SIGINT', shutdown); // Ctrl+C
-    process.on('SIGTERM', shutdown); // arrêt envoyé par le serveur (systemd, Docker)
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
   } catch (error) {
     console.error('Impossible de démarrer :', error.message);
     process.exit(1);

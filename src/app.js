@@ -12,8 +12,7 @@ const app = express();
 app.use(compression({ threshold: 1024 }));
 app.use(express.json({ limit: '100kb' }));
 
-// Sans corps JSON, req.body est undefined et les services planteraient.
-// Avec un objet vide, ils renvoient juste un 400
+// Sans corps JSON, req.body est undefined : avec {}, les services répondent 400 au lieu de planter
 app.use((req, res, next) => {
   if (req.body === undefined) {
     req.body = {};

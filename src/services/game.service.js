@@ -65,7 +65,6 @@ function validateGameInput(body, partial) {
   return data;
 }
 
-// renvoie le jeu, ou une 404
 async function findGameOrFail(rawId) {
   const id = parseId(rawId);
   const game = await gameRepository.findGameById(id);

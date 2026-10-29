@@ -9,7 +9,7 @@ export async function saveConfig(userId, gameId, settings) {
   return await GameConfig.findOneAndUpdate(
     { userId: userId, gameId: gameId },
     { settings: settings },
-    { upsert: true, returnDocument: 'after' }, // renvoie la config après la modif
+    { upsert: true, returnDocument: 'after' },
   );
 }
 

@@ -1,5 +1,4 @@
-// Sauvegarde des deux bases (Docker) dans backups/AAAA-MM-JJ_HH-MM/
-// À lancer avec : npm run backup
+// npm run backup : sauvegarde les deux bases (Docker) dans backups/AAAA-MM-JJ_HH-MM/
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';

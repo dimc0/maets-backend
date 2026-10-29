@@ -1,13 +1,12 @@
-// Test de charge avec JMeter (le plan est dans load-test/maets.jmx)
-// Il faut que l'API tourne (npm start), puis : npm run load-test
-// Ça fait un rapport HTML par palier dans load-test/reports/<joueurs>/index.html
+// npm run load-test : test de charge JMeter (plan dans load-test/maets.jmx), l'API doit tourner
+// Un rapport HTML par palier dans load-test/reports/<joueurs>/index.html
 import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
 
-const PALIERS = [10, 50, 100]; // joueurs en même temps
-const DURATION = 30; // en secondes, pour chaque palier
+const PALIERS = [10, 50, 100];
+const DURATION = 30;
 const REPORT_DIR = path.join('load-test', 'reports');
 
 const jmeter = path.join(process.env.JMETER_HOME, 'bin', 'jmeter.bat');
@@ -16,9 +15,8 @@ if (!fs.existsSync(jmeter)) {
   process.exit(1);
 }
 
-// Le mot de passe passe par un fichier temporaire et pas par la ligne de commande :
-// comme ça il n'apparaît pas dans la liste des processus.
-// Les \ sont doublés car JMeter les lit comme des caractères spéciaux dans un .properties
+// Le mot de passe passe par un fichier temporaire, pas par la ligne de commande (sinon il serait
+// visible dans la liste des processus). Les \ sont doublés car JMeter les lit comme des caractères spéciaux
 fs.mkdirSync(REPORT_DIR, { recursive: true });
 const secretFile = path.join(REPORT_DIR, 'secret.properties');
 fs.writeFileSync(secretFile, `password=${process.env.SEED_USER_PASSWORD.replaceAll('\\', '\\\\')}\n`);

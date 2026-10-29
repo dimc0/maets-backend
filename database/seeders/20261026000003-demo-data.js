@@ -44,14 +44,12 @@ export async function up(queryInterface) {
   const passwordHash = await bcrypt.hash(process.env.SEED_USER_PASSWORD, 10);
   await mongoose.connect(process.env.MONGODB_URI);
 
-  // Éditeurs
   const publisherRows = [];
   for (const name of faker.helpers.uniqueArray(faker.company.name, NB_PUBLISHERS)) {
     publisherRows.push({ name: name });
   }
   const publishers = await queryInterface.bulkInsert('publishers', publisherRows, { returning: ['id'] });
 
-  // Jeux
   const gameRows = [];
   for (let i = 0; i < NB_GAMES; i++) {
     gameRows.push({
@@ -63,7 +61,6 @@ export async function up(queryInterface) {
   }
   const games = await queryInterface.bulkInsert('games', gameRows, { returning: ['id'] });
 
-  // Joueurs (rôle "user")
   const userRows = [];
   for (let i = 1; i <= NB_USERS; i++) {
     userRows.push({ email: `joueur${i}@example.com`, password_hash: passwordHash });

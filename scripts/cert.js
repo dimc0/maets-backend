@@ -1,5 +1,4 @@
-// Crée le certificat HTTPS auto-signé dans certs/ (valable 1 an, pour localhost)
-// À lancer avec : npm run cert
+// npm run cert : crée le certificat HTTPS auto-signé dans certs/ (valable 1 an, pour localhost)
 import fs from 'fs';
 import { spawnSync } from 'child_process';
 
