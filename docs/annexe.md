@@ -48,10 +48,7 @@ Client ──HTTPS──► route ──► middleware (JWT, rôle) ──► co
 
 ### 2.1 Installation
 
-Pour travailler sur le projet, il faut Visual Studio Code, Node.js 22.12 ou plus et Git. Pour les bases de données, le README propose deux façons de faire (parties 2 et 3) :
-
-- **avec Docker (conseillé)** : il suffit d'installer Docker Desktop, puis `docker compose up -d` démarre PostgreSQL 17 et MongoDB 8 déjà configurés (la base et l'utilisateur sont créés à partir du `.env`) ;
-- **en local** : on installe PostgreSQL 17 (avec pgAdmin 4) et MongoDB Community Server (avec Compass), et on crée l'utilisateur et la base PostgreSQL à la main.
+Pour travailler sur le projet, il faut Visual Studio Code, Node.js 22.12 ou plus et Git. Pour les bases de données, Docker est obligatoire : on installe Docker Desktop, puis `docker compose up -d --wait` démarre PostgreSQL 17 et MongoDB 8 déjà configurés (la base et l'utilisateur sont créés à partir du `.env`). J'ai choisi une seule façon d'installer pour que ce soit plus simple : tout le monde a les mêmes versions des bases, et il n'y a rien à créer à la main.
 
 Le `docker-compose.yml` décrit les deux conteneurs : des images dont la version majeure est fixée (`postgres:17-alpine`, `mongo:8`), des volumes nommés pour garder les données, un `healthcheck` pour savoir quand les bases sont prêtes, et les ports 5433 et 27018 pour ne pas gêner des bases déjà installées sur le poste. Je n'ai mis que les bases dans Docker : l'API reste lancée avec Node, pour garder le débogage dans VS Code et le redémarrage automatique.
 
@@ -143,7 +140,7 @@ J'ai ajouté ces deux couches pour alléger les contrôleurs et garder un code p
 
 ### 4.1 Installation du serveur et ressources nécessaires
 
-**Installation sur un serveur Linux (production)** : on installe Node.js (version 22.12 ou plus récente), puis on lance PostgreSQL 17 et MongoDB, soit avec le même `docker-compose.yml` (Docker Engine), soit installés directement sur le serveur avec un utilisateur et une base PostgreSQL dédiés. On copie le projet, on crée le `.env` avec des secrets propres au serveur et on met le certificat dans `certs/`. Ensuite, avec `NODE_ENV=production` : `npm ci`, `npm run db:migrate` et `npm run db:seed:prod` (rôles et compte admin). Enfin, on lance `npm start` avec un gestionnaire de services (systemd) pour qu'il redémarre tout seul.
+**Installation sur un serveur Linux (production)** : on installe Node.js (version 22.12 ou plus récente), puis on lance PostgreSQL 17 et MongoDB avec le même `docker-compose.yml` (Docker Engine). On copie le projet, on crée le `.env` avec des secrets propres au serveur et on met le certificat dans `certs/`. Ensuite, avec `NODE_ENV=production` : `npm ci`, `npm run db:migrate` et `npm run db:seed:prod` (rôles et compte admin). Enfin, on lance `npm start` avec un gestionnaire de services (systemd) pour qu'il redémarre tout seul.
 
 **Ressources par composant**, avec les hypothèses de la partie 7 (100 000 inscrits, 200 requêtes par seconde au pic) :
 
@@ -276,7 +273,7 @@ Le *p95*, c'est le temps sous lequel répondent 95 % des requêtes. En gros, c'e
 - **Des données de test anonymes** : elles sont générées par Faker, les emails sont en `@example.com` (un domaine réservé aux exemples), il n'y a aucune donnée réelle, et la graine est fixe pour avoir les mêmes données sur chaque poste.
 - **Injection SQL** : toutes les requêtes passent par Sequelize, qui envoie les valeurs à part de la requête (requêtes paramétrées). Aucune valeur venant du client n'est collée dans du texte SQL.
 - **Mots de passe** hachés avec bcrypt (coût 10, avec un sel aléatoire).
-- **Le moins de droits possible** : sans Docker, l'application se connecte avec l'utilisateur `maets`, qui n'a des droits que sur sa base, et jamais avec le compte administrateur `postgres`. Avec Docker, l'image PostgreSQL fait de `maets` l'administrateur du conteneur, mais ce conteneur ne contient que la base du projet.
+- **Le moins de droits possible** : l'application se connecte avec l'utilisateur `maets`, jamais avec le compte `postgres`. L'image PostgreSQL fait de `maets` l'administrateur du conteneur, mais ce conteneur ne contient que la base du projet.
 ---
 
 ## 6. Base NoSQL MongoDB

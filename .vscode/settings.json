@@ -3,7 +3,7 @@
   // personnels de chacun uniquement quand le dossier Maets est ouvert).
 
   // --- Apparence ---
-  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.colorTheme": "Dark Modern",
   "workbench.iconTheme": "material-icon-theme",
   "editor.fontSize": 14,
   "editor.rulers": [120],

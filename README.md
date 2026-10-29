@@ -59,12 +59,8 @@ Une seule fois par poste :
 | **Visual Studio Code** | https://code.visualstudio.com/ | La config de l'équipe est fournie (voir plus bas) |
 | **Node.js 22.12+** (LTS) | https://nodejs.org/ | Installe aussi `npm`. On vérifie avec `node -v` |
 | **Git** | https://git-scm.com/ | Pour récupérer le projet. Il installe aussi OpenSSL, qui sert à créer le certificat HTTPS (`npm run cert` le trouve tout seul dans le dossier de Git) |
+| **Docker Desktop** | https://www.docker.com/products/docker-desktop/ | Obligatoire : PostgreSQL et MongoDB tournent dans Docker, il n'y a rien d'autre à installer pour les bases (étape 3.3) |
 | **Java** et **JMeter 5.6.3** | https://www.java.com/ et https://jmeter.apache.org/download_jmeter.cgi | Seulement pour le test de charge (partie 8). Prendre `apache-jmeter-5.6.3.zip` dans *Binaries* et le dézipper, par exemple dans `C:\outils\` |
-
-Pour les bases de données, il y a deux façons de faire :
-
-- **Avec Docker (le plus simple)** : on installe juste **Docker Desktop** (https://www.docker.com/products/docker-desktop/) et une commande lance PostgreSQL et MongoDB, déjà configurés (étape 3.3 A).
-- **Sans Docker** : on installe **PostgreSQL 17** (https://www.postgresql.org/download/, avec pgAdmin 4) et **MongoDB Community Server** (https://www.mongodb.com/try/download/community, en cochant « Install MongoD as a Service » et Compass). Voir l'étape 3.3 B.
 
 ### La config VS Code (dossier `.vscode/`)
 
@@ -107,12 +103,12 @@ npm signale 2 vulnérabilités « moderate » : elles viennent du paquet `uuid` 
 Copy-Item .env.example .env
 ```
 
-Ensuite on ouvre `.env` et on remplace chaque `change-me` par une valeur qu'on choisit soi-même. Les autres valeurs marchent telles quelles avec Docker.
+Ensuite on ouvre `.env` et on remplace chaque `change-me` par une valeur qu'on choisit soi-même. Les autres valeurs marchent telles quelles.
 
 | Variable | À quoi elle sert |
 |---|---|
 | `PORT` | Le port de l'API (3000 par défaut) |
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` | La connexion à PostgreSQL. Avec Docker, `DB_PASS` doit être choisi avant le premier `docker compose up` : la base est créée avec ce mot de passe |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` | La connexion à PostgreSQL. `DB_PASS` doit être choisi avant le premier `docker compose up` : la base est créée avec ce mot de passe |
 | `MONGODB_URI` | L'adresse de MongoDB |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Le compte admin créé par les seeders (on se connecte ensuite avec) |
 | `SEED_USER_PASSWORD` | Le mot de passe commun des joueurs de démo |
@@ -127,7 +123,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 > Le `.env` contient des secrets : il est dans le `.gitignore` et ne doit jamais être partagé.
 
-### 3.3 A. Les bases avec Docker
+### 3.3 Les bases avec Docker
 
 Docker Desktop doit être lancé. Le `.env` copié depuis `.env.example` a déjà les bons ports (5433 et 27018), il n'y a rien à changer. Puis :
 
@@ -149,27 +145,16 @@ On a pris les ports 5433 et 27018 pour ne pas gêner un PostgreSQL ou un MongoDB
 | `docker compose stop` | Arrête les bases (les données restent) |
 | `docker compose logs -f` | Affiche les logs des bases |
 
-Ensuite, on passe directement à l'étape 3.5.
+**Si on change le `.env` plus tard** : Docker ne lit `DB_NAME`, `DB_USER` et `DB_PASS` qu'une seule fois, quand il crée la base. Les autres variables sont lues par l'API à chaque démarrage.
 
-### 3.3 B. Les bases installées sur le poste (sans Docker)
+| Variable changée | Ce qu'il faut faire |
+|---|---|
+| `DB_NAME`, `DB_USER`, `DB_PASS` | Recréer les bases : `docker compose down -v` (**efface toutes les données**), puis `docker compose up -d --wait`, `npm run db:migrate` et `npm run db:seed` |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `SEED_USER_PASSWORD` | Recréer les comptes : `npm run db:seed:undo` puis `npm run db:seed` |
+| `JWT_SECRET`, `PORT` | Redémarrer l'API (avec un nouveau `JWT_SECRET`, il faut se reconnecter) |
+| `DB_HOST`, `DB_PORT`, `MONGODB_URI` | À laisser comme dans `.env.example` : ils correspondent au `docker-compose.yml` |
 
-Dans le `.env`, on remet les ports par défaut des bases installées : `DB_PORT=5432` et `MONGODB_URI=mongodb://127.0.0.1:27017/maets`.
-
-Avec le compte `postgres` (son mot de passe a été choisi à l'installation), on crée un utilisateur et une base rien que pour le projet. Le mot de passe doit être le même que `DB_PASS` :
-
-```powershell
-& "C:\Program Files\PostgreSQL\17\bin\psql.exe" -U postgres -c "CREATE USER maets WITH PASSWORD 'votre_mot_de_passe';" -c "CREATE DATABASE maets OWNER maets;"
-```
-
-On peut aussi le faire dans **pgAdmin 4** : clic droit sur *Login/Group Roles* → *Create* (nom `maets`, mot de passe, *Can login*), puis clic droit sur *Databases* → *Create* (nom `maets`, propriétaire `maets`).
-
-L'utilisateur `maets` n'a des droits que sur sa base : l'application ne se connecte jamais avec le compte `postgres`. (Avec Docker, `maets` est l'administrateur du conteneur, mais ce conteneur ne contient que la base du projet.)
-
-### 3.4 Vérifier MongoDB (seulement sans Docker)
-
-Après l'installation, MongoDB tourne comme un service Windows. Dans **MongoDB Compass**, la connexion `mongodb://localhost:27017` doit marcher. La base `maets` sera créée au premier enregistrement.
-
-### 3.5 Les tables et les données de test
+### 3.4 Les tables et les données de test
 
 ```powershell
 npm run db:migrate
@@ -183,7 +168,7 @@ npm run db:seed
 
 Ajoute les rôles, le compte admin et les données de démo (`database/seeders/`).
 
-### 3.6 Le certificat HTTPS
+### 3.5 Le certificat HTTPS
 
 ```powershell
 npm run cert
@@ -225,6 +210,8 @@ npm ci
 ```
 
 Installe **exactement** les versions du `package-lock.json` (plus sûr que `npm install` sur un serveur). Avec `NODE_ENV=production`, les outils de développement (Faker) ne sont pas installés.
+
+Les bases se lancent comme en développement, avec `docker compose up -d --wait` (Docker Engine sur Linux). Puis :
 
 ```powershell
 npm run db:migrate
