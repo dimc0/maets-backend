@@ -107,14 +107,14 @@ npm signale 2 vulnérabilités « moderate » : elles viennent du paquet `uuid` 
 Copy-Item .env.example .env
 ```
 
-Ensuite on ouvre `.env` et on remplace chaque `change-me` :
+Ensuite on ouvre `.env` et on remplace chaque `change-me` par une valeur qu'on choisit soi-même. Les autres valeurs marchent telles quelles avec Docker.
 
 | Variable | À quoi elle sert |
 |---|---|
 | `PORT` | Le port de l'API (3000 par défaut) |
-| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` | La connexion à PostgreSQL |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS` | La connexion à PostgreSQL. Avec Docker, `DB_PASS` doit être choisi avant le premier `docker compose up` : la base est créée avec ce mot de passe |
 | `MONGODB_URI` | L'adresse de MongoDB |
-| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Le compte admin créé par les seeders |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | Le compte admin créé par les seeders (on se connecte ensuite avec) |
 | `SEED_USER_PASSWORD` | Le mot de passe commun des joueurs de démo |
 | `JWT_SECRET` | La clé qui signe les tokens (une longue chaîne aléatoire) |
 | `JMETER_HOME` | Le dossier de JMeter, seulement pour le test de charge (par exemple `C:\outils\apache-jmeter-5.6.3`) |
