@@ -53,7 +53,7 @@ Pour travailler sur le projet, il faut Visual Studio Code, Node.js 22.12 ou plus
 - **avec Docker (conseillé)** : il suffit d'installer Docker Desktop, puis `docker compose up -d` démarre PostgreSQL 17 et MongoDB 8 déjà configurés (la base et l'utilisateur sont créés à partir du `.env`) ;
 - **en local** : on installe PostgreSQL 17 (avec pgAdmin 4) et MongoDB Community Server (avec Compass), et on crée l'utilisateur et la base PostgreSQL à la main.
 
-Le `docker-compose.yml` décrit les deux conteneurs : des images avec une version fixe, des volumes nommés pour garder les données, un `healthcheck` pour savoir quand les bases sont prêtes, et les ports 5433 et 27018 pour ne pas gêner des bases déjà installées sur le poste. Je n'ai mis que les bases dans Docker : l'API reste lancée avec Node, pour garder le débogage dans VS Code et le redémarrage automatique.
+Le `docker-compose.yml` décrit les deux conteneurs : des images dont la version majeure est fixée (`postgres:17-alpine`, `mongo:8`), des volumes nommés pour garder les données, un `healthcheck` pour savoir quand les bases sont prêtes, et les ports 5433 et 27018 pour ne pas gêner des bases déjà installées sur le poste. Je n'ai mis que les bases dans Docker : l'API reste lancée avec Node, pour garder le débogage dans VS Code et le redémarrage automatique.
 
 Une fois le `.env` rempli et les bases lancées, quatre commandes suffisent pour avoir une API prête : `npm install`, `npm run db:migrate`, `npm run db:seed` et `npm run cert` (le certificat HTTPS).
 
@@ -74,10 +74,11 @@ Chaque commande est un script npm, expliqué dans le README. On sépare bien le 
 |---|---|---|
 | Installer les dépendances | `npm install` | `npm ci` (les versions exactes du `package-lock.json`) |
 | Lancer l'API | `npm run dev` (redémarre à chaque modification) | `npm start` |
-| Données | `npm run db:seed` (données de démo) | seulement les seeders des rôles et du compte admin |
+| Environnement | rien à faire (`development` par défaut) | `NODE_ENV=production` : Faker n'est pas installé |
+| Données | `npm run db:seed` (données de démo) | `npm run db:seed:prod` (rôles et compte admin seulement) |
 | Test de charge | `npm run load-test` (JMeter en ligne de commande, sans interface) | |
 
-La version minimale de Node est imposée dans le `package.json` (`"engines": { "node": ">=22.12.0" }`), parce que les migrations sont écrites en modules ES et qu'il faut Node 22.12 pour les lire.
+La version minimale de Node est indiquée dans le `package.json` (`"engines": { "node": ">=22.12.0" }`), parce que les migrations sont écrites en modules ES et qu'il faut Node 22.12 pour les lire.
 
 ### 2.3 Personnalisation de l'IDE
 
@@ -117,6 +118,8 @@ Error                     (classe de base de JavaScript)
 - **Polymorphisme** : le gestionnaire d'erreurs traite toutes ces classes avec un seul test, `err instanceof AppError`, sans avoir à connaître chaque sous-classe.
 - **Encapsulation** : dans chaque service, les fonctions internes (`validateGameInput`, `findGameOrFail`, `checkUser`…) ne sont pas exportées. Les contrôleurs ne voient que les opérations dont ils ont besoin.
 
+Je n'ai pas utilisé l'héritage ailleurs, comme le conseille le cours : les routes REST ont peu de choses en commun, et l'héritage rendrait le code plus dur à lire. Les erreurs sont le cas où il sert vraiment.
+
 ### 3.2 Architecture MVC
 
 | Couche | Dossier | Rôle |
@@ -127,7 +130,7 @@ Error                     (classe de base de JavaScript)
 | Service (ajouté) | `services/` | La logique : vérifier les données reçues, lever les erreurs (404, 409…), préparer la réponse avec le DTO |
 | Repository (ajouté) | `repositories/` | L'accès aux bases, et rien d'autre : toutes les requêtes Sequelize et Mongoose sont là |
 
-J'ai ajouté ces deux couches pour alléger les contrôleurs et garder un code propre. Un contrôleur ne fait plus que 2 ou 3 lignes, toutes les vérifications d'un jeu sont au même endroit (`game.service.js`), et si on changeait un jour d'ORM ou de base, seuls les repositories seraient à modifier.
+J'ai ajouté ces deux couches pour alléger les contrôleurs et garder un code propre. Un contrôleur ne fait plus que 2 ou 3 lignes, toutes les vérifications d'un jeu sont au même endroit (`game.service.js`), et si on changeait un jour d'ORM ou de base, l'essentiel des changements serait dans les repositories.
 
 ### 3.3 Clarté du code
 
@@ -140,7 +143,7 @@ J'ai ajouté ces deux couches pour alléger les contrôleurs et garder un code p
 
 ### 4.1 Installation du serveur et ressources nécessaires
 
-**Installation sur un serveur Linux (production)** : on installe Node.js (version 22.12 ou plus récente), puis on lance PostgreSQL 17 et MongoDB, soit avec le même `docker-compose.yml` (Docker Engine), soit installés directement sur le serveur avec un utilisateur et une base PostgreSQL dédiés. On copie le projet, on crée le `.env` avec des secrets propres au serveur et on met le certificat dans `certs/`. Ensuite `npm ci`, `npm run db:migrate` et les seeders des rôles et de l'admin. Enfin, on lance `npm start` avec un gestionnaire de services (systemd) pour qu'il redémarre tout seul.
+**Installation sur un serveur Linux (production)** : on installe Node.js (version 22.12 ou plus récente), puis on lance PostgreSQL 17 et MongoDB, soit avec le même `docker-compose.yml` (Docker Engine), soit installés directement sur le serveur avec un utilisateur et une base PostgreSQL dédiés. On copie le projet, on crée le `.env` avec des secrets propres au serveur et on met le certificat dans `certs/`. Ensuite, avec `NODE_ENV=production` : `npm ci`, `npm run db:migrate` et `npm run db:seed:prod` (rôles et compte admin). Enfin, on lance `npm start` avec un gestionnaire de services (systemd) pour qu'il redémarre tout seul.
 
 **Ressources par composant**, avec les hypothèses de la partie 7 (100 000 inscrits, 200 requêtes par seconde au pic) :
 
@@ -465,7 +468,7 @@ Les URL décrivent des ressources (« la librairie de l'utilisateur 2 »), le ve
 - Des bibliothèques standard : `jsonwebtoken` (JWT, RFC 7519) et `bcryptjs`.
 - Toutes les entrées sont vérifiées, les champs inconnus ignorés et les id dans les URL contrôlés.
 - Les clés qui commencent par `$` sont refusées au premier niveau des réglages (injection NoSQL). Le risque reste faible de toute façon : les recherches MongoDB n'utilisent que `userId` et `gameId`, des entiers déjà vérifiés, jamais les réglages.
-- Le détail des erreurs internes n'est jamais renvoyé au client.
+- Le détail des erreurs internes n'est jamais renvoyé au client, et l'en-tête `X-Powered-By: Express` est désactivé pour ne pas annoncer la technologie utilisée.
 - Tout passe en HTTPS (voir 4.2).
 - Les secrets ne sont pas dans le code (`.env` et `certs/`, exclus de Git).
 
@@ -476,8 +479,6 @@ Les URL décrivent des ressources (« la librairie de l'utilisateur 2 »), le ve
 ## 11. Tests
 
 **Test de charge** : fait avec JMeter, voir la partie 5.3 (le scénario, les paliers de 10 à 100 joueurs, les résultats et ce que j'en retiens).
-
-> **Pas encore fait** : tests automatisés avec mocha (un test par route, cas normaux et cas d'erreur), rapport de couverture et résultats.
 
 ---
 

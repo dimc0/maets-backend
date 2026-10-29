@@ -8,6 +8,7 @@ import { errorHandler } from './middlewares/errorHandler.js';
 
 // Pas de listen() ici, c'est server.js qui démarre (les tests pourront importer l'app)
 const app = express();
+app.disable('x-powered-by'); // ne pas annoncer « Express » dans chaque réponse
 
 app.use(compression({ threshold: 1024 }));
 app.use(express.json({ limit: '100kb' }));

@@ -24,7 +24,7 @@ Le détail des choix (réglages du serveur, SQL ou NoSQL, sauvegardes, test de c
 5. [Comptes de test](#5-comptes-de-test)
 6. [Swagger](#6-swagger)
 7. [Toutes les commandes](#7-toutes-les-commandes)
-8. [Tests](#8-tests)
+8. [Test de charge](#8-test-de-charge-jmeter)
 9. [Sauvegardes](#9-sauvegardes)
 
 ---
@@ -59,7 +59,7 @@ Une seule fois par poste :
 | **Visual Studio Code** | https://code.visualstudio.com/ | La config de l'équipe est fournie (voir plus bas) |
 | **Node.js 22.12+** (LTS) | https://nodejs.org/ | Installe aussi `npm`. On vérifie avec `node -v` |
 | **Git** | https://git-scm.com/ | Pour récupérer le projet. Il installe aussi OpenSSL, qui sert à créer le certificat HTTPS (`npm run cert` le trouve tout seul dans le dossier de Git) |
-| **Java** et **JMeter 5.6.3** | https://www.java.com/ et https://jmeter.apache.org/download_jmeter.cgi | Seulement pour le test de charge (partie 8.2). Prendre `apache-jmeter-5.6.3.zip` dans *Binaries* et le dézipper, par exemple dans `C:\outils\` |
+| **Java** et **JMeter 5.6.3** | https://www.java.com/ et https://jmeter.apache.org/download_jmeter.cgi | Seulement pour le test de charge (partie 8). Prendre `apache-jmeter-5.6.3.zip` dans *Binaries* et le dézipper, par exemple dans `C:\outils\` |
 
 Pour les bases de données, il y a deux façons de faire :
 
@@ -72,7 +72,7 @@ Il suffit d'ouvrir le **dossier du projet** dans VS Code (*Fichier → Ouvrir le
 
 - **`settings.json`** : thème sombre, icônes, indentation de 2 espaces, formatage à l'enregistrement, imports en `.js`, guillemets simples, terminal PowerShell. Rien à faire, c'est appliqué à l'ouverture.
 - **`extensions.json`** : 9 extensions conseillées (français, icônes, `.env`, complétion des chemins et des paquets npm, PostgreSQL, MongoDB, client REST). VS Code propose de les installer à l'ouverture (sinon : onglet Extensions, filtre `@recommended`).
-- **`launch.json`** : pour déboguer l'API ou les seeders. Onglet *Exécuter et déboguer* (`Ctrl+Maj+D`), choisir « Déboguer l'API », puis **F5**. On pose un point d'arrêt en cliquant à gauche d'un numéro de ligne.
+- **`launch.json`** : pour déboguer l'API ou les seeders. Onglet *Exécuter et déboguer* (`Ctrl+Maj+D`), choisir « Déboguer l'API », puis **F5** (arrêter `npm run dev` avant, sinon le port est déjà pris). On pose un point d'arrêt en cliquant à gauche d'un numéro de ligne. « Déboguer les seeders » ne rejoue que les seeders pas encore passés : lancer `npm run db:seed:undo` avant. À la première ouverture, VS Code demande s'il peut faire confiance au dossier : répondre oui, sinon le débogage est désactivé.
 - **`maets.code-snippets`** : des raccourcis de code. Dans un fichier `.js`, on tape `mctrl` (contrôleur), `mservice` (service), `mrepo` (repository), `mroute` (route protégée) ou `merr` (erreur), puis `Tab`.
 
 On utilise le formateur intégré à VS Code, qui garde le style du projet. Prettier est déconseillé : sans config, il changerait les guillemets dans tout le code.
@@ -85,7 +85,13 @@ Toutes les commandes se tapent dans un terminal (PowerShell sous Windows), **à 
 
 > Sur un PC neuf, Windows PowerShell peut refuser `npm` avec le message « l'exécution de scripts est désactivée sur ce système ». Il suffit de lancer une fois `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, ou d'utiliser PowerShell 7 (https://aka.ms/powershell), qui n'a pas ce blocage.
 
-### 3.1 Les dépendances
+### 3.1 Récupérer le projet et ses dépendances
+
+On récupère le projet (on dézippe l'archive), puis on se place dans son dossier :
+
+```powershell
+cd maets-backend
+```
 
 ```powershell
 npm install
@@ -133,7 +139,7 @@ MONGODB_URI=mongodb://127.0.0.1:27018/maets
 Puis :
 
 ```powershell
-docker compose up -d
+docker compose up -d --wait
 ```
 
 La première fois, Docker télécharge les images. Ensuite il démarre les deux conteneurs décrits dans `docker-compose.yml` :
@@ -145,7 +151,7 @@ On a pris les ports 5433 et 27018 pour ne pas gêner un PostgreSQL ou un MongoDB
 
 | Commande | Ce qu'elle fait |
 |---|---|
-| `docker compose up -d` | Démarre les bases en arrière-plan |
+| `docker compose up -d --wait` | Démarre les bases en arrière-plan et attend qu'elles soient prêtes |
 | `docker compose ps` | Montre l'état des conteneurs (`healthy` = prêt) |
 | `docker compose stop` | Arrête les bases (les données restent) |
 | `docker compose logs -f` | Affiche les logs des bases |
@@ -202,7 +208,7 @@ Crée un certificat **auto-signé** valable un an dans `certs/` (`cert.pem` et `
 npm run dev
 ```
 
-Le serveur redémarre tout seul à chaque modification. L'API répond **en HTTPS** sur https://localhost:3000/api (le HTTP simple ne marche pas).
+Le serveur redémarre tout seul à chaque modification. L'API répond **en HTTPS** (le HTTP simple ne marche pas). Pour vérifier : https://localhost:3000/api/games doit afficher la liste des jeux, et https://localhost:3000/api/docs la page Swagger.
 
 Comme le certificat est auto-signé :
 - dans le **navigateur**, la première fois, il y a un avertissement « connexion non privée » : *Paramètres avancés* puis *Continuer vers localhost* ;
@@ -213,15 +219,27 @@ En production, on prendrait un certificat d'une autorité reconnue (Let's Encryp
 
 ### En production
 
+Sur un serveur, on indique d'abord qu'on est en production (sur Linux : `export NODE_ENV=production`) :
+
+```powershell
+$env:NODE_ENV = 'production'
+```
+
 ```powershell
 npm ci
 ```
 
-Installe **exactement** les versions du `package-lock.json` (plus sûr que `npm install` sur un serveur).
+Installe **exactement** les versions du `package-lock.json` (plus sûr que `npm install` sur un serveur). Avec `NODE_ENV=production`, les outils de développement (Faker) ne sont pas installés.
 
 ```powershell
 npm run db:migrate
 ```
+
+```powershell
+npm run db:seed:prod
+```
+
+Crée seulement les **rôles** et le **compte admin**, sans les données de démo.
 
 On met dans `certs/` le certificat et la clé du serveur, puis :
 
@@ -230,16 +248,6 @@ npm start
 ```
 
 Lance le serveur, sans redémarrage automatique.
-
-En production, on n'a besoin que des seeders des **rôles** et du **compte admin**, pas des données de démo :
-
-```powershell
-npx sequelize-cli db:seed --seed 20261026000001-roles.js
-```
-
-```powershell
-npx sequelize-cli db:seed --seed 20261026000002-admin-user.js
-```
 
 Pour arrêter : `Ctrl+C`. Le serveur finit les requêtes en cours et ferme proprement les connexions aux bases.
 
@@ -281,27 +289,21 @@ La description complète de l'API est dans [`docs/openapi.json`](docs/openapi.js
 | `npm start` | Lance l'API (production) |
 | `npm run db:migrate` | Crée les tables qui manquent |
 | `npm run db:migrate:status` | Montre les migrations déjà passées ou non |
-| `npm run db:migrate:undo` | Supprime toutes les tables |
+| `npm run db:migrate:undo` | Supprime toutes les tables (lancer `npm run db:seed:undo` avant, sinon les seeders se croient déjà passés) |
 | `npm run db:seed` | Ajoute les données de test |
+| `npm run db:seed:prod` | Crée seulement les rôles et le compte admin (production) |
 | `npm run db:seed:undo` | Enlève les données de test |
 | `npm run db:reset` | Repart de zéro : tables recréées et données de test remises |
 | `npm run cert` | Crée le certificat HTTPS auto-signé dans `certs/` |
-| `docker compose up -d` | Démarre PostgreSQL et MongoDB dans Docker |
+| `docker compose up -d --wait` | Démarre PostgreSQL et MongoDB dans Docker (et attend qu'elles soient prêtes) |
 | `docker compose stop` | Arrête les bases Docker (les données restent) |
 | `npm run backup` | Sauvegarde les deux bases dans `backups/` (on garde les 7 dernières) |
 | `npm run restore` | Restaure la dernière sauvegarde (ou celle qu'on donne en paramètre) |
 | `npm run load-test` | Test de charge JMeter avec 10, 50 puis 100 joueurs (l'API doit tourner) |
-| `npm test` | **Pas encore fait** : tests automatisés et rapport de couverture |
 
 ---
 
-## 8. Tests
-
-### 8.1 Tests automatisés
-
-> **Pas encore fait** : tests automatisés (un test par route) et rapport de couverture, lancés avec `npm test`.
-
-### 8.2 Test de charge (JMeter)
+## 8. Test de charge (JMeter)
 
 Il faut : Java et JMeter installés (partie 2), `JMETER_HOME` dans le `.env`, et les données de test (`npm run db:seed`).
 

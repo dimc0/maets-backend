@@ -28,6 +28,13 @@ export function errorHandler(err, req, res, next) {
     });
   }
 
+  // autre erreur du client repérée par Express (URL mal encodée, encodage inconnu...)
+  if (err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({
+      error: { code: 'BAD_REQUEST', message: 'Requête invalide' },
+    });
+  }
+
   // bug pas prévu : on l'affiche dans le terminal, le client ne voit pas le détail
   console.error(err);
   return res.status(500).json({
