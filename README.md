@@ -24,11 +24,8 @@ Le détail des choix (réglages du serveur, SQL ou NoSQL, sauvegardes, test de c
 5. [Comptes de test](#5-comptes-de-test)
 6. [Swagger](#6-swagger)
 7. [Toutes les commandes](#7-toutes-les-commandes)
-8. [Organisation du code](#8-organisation-du-code)
-9. [Routes et droits](#9-routes-et-droits)
-10. [Sécurité](#10-sécurité)
-11. [Tests](#11-tests)
-12. [Sauvegardes](#12-sauvegardes)
+8. [Tests](#8-tests)
+9. [Sauvegardes](#9-sauvegardes)
 
 ---
 
@@ -62,7 +59,7 @@ Une seule fois par poste :
 | **Visual Studio Code** | https://code.visualstudio.com/ | La config de l'équipe est fournie (voir plus bas) |
 | **Node.js 22.12+** (LTS) | https://nodejs.org/ | Installe aussi `npm`. On vérifie avec `node -v` |
 | **Git** | https://git-scm.com/ | Pour récupérer le projet. Il installe aussi OpenSSL, qui sert à créer le certificat HTTPS (`npm run cert` le trouve tout seul dans le dossier de Git) |
-| **Java** et **JMeter 5.6.3** | https://www.java.com/ et https://jmeter.apache.org/download_jmeter.cgi | Seulement pour le test de charge (partie 11.2). Prendre `apache-jmeter-5.6.3.zip` dans *Binaries* et le dézipper, par exemple dans `C:\outils\` |
+| **Java** et **JMeter 5.6.3** | https://www.java.com/ et https://jmeter.apache.org/download_jmeter.cgi | Seulement pour le test de charge (partie 8.2). Prendre `apache-jmeter-5.6.3.zip` dans *Binaries* et le dézipper, par exemple dans `C:\outils\` |
 
 Pour les bases de données, il y a deux façons de faire :
 
@@ -298,115 +295,13 @@ La description complète de l'API est dans [`docs/openapi.json`](docs/openapi.js
 
 ---
 
-## 8. Organisation du code
+## 8. Tests
 
-Le code est découpé en couches : **route → contrôleur → service → repository → modèle**. Chaque couche ne parle qu'à celle d'en dessous.
-
-```
-backend/
-├── .vscode/              config VS Code de l'équipe
-├── docker-compose.yml    PostgreSQL et MongoDB dans Docker
-├── .env.example          modèle du .env
-├── .sequelizerc          où sequelize-cli trouve les migrations et les seeders
-├── database/
-│   ├── migrations/       création des tables
-│   └── seeders/          données de test
-├── docs/
-│   ├── openapi.json      description de l'API (Swagger)
-│   └── annexe.pdf        explication des choix techniques
-├── load-test/
-│   └── maets.jmx         plan du test de charge JMeter (les rapports vont dans load-test/reports/)
-├── scripts/              certificat HTTPS, sauvegarde, restauration, test de charge
-└── src/
-    ├── server.js         démarrage : connexion aux bases puis ouverture du port
-    ├── app.js            l'application Express (middlewares, routes, Swagger)
-    ├── config/           lecture du .env, config PostgreSQL
-    ├── database/         connexions à PostgreSQL (Sequelize) et MongoDB (Mongoose)
-    ├── routes/           quelle URL appelle quel contrôleur, et avec quelles protections
-    ├── middlewares/      vérification du token, 404, gestion des erreurs
-    ├── controllers/      lit la requête, appelle le service, renvoie la réponse
-    ├── services/         la logique : vérifications, erreurs, mise en forme
-    ├── repositories/     uniquement l'accès aux bases
-    ├── models/sql/       les tables PostgreSQL (*.model.js)
-    ├── models/nosql/     la collection MongoDB (gameConfig.model.js)
-    ├── dto/              ce qu'on renvoie au client (la « vue » du MVC)
-    ├── errors/           les classes d'erreurs (AppError et ses sous-classes)
-    └── utils/            petits outils partagés (vérification des id)
-```
-
-Pour faire le lien avec le MVC :
-- le **modèle**, c'est `models/` (avec `repositories/` pour l'accès aux données) ;
-- la **vue**, c'est `dto/`, c'est-à-dire le JSON renvoyé au client ;
-- le **contrôleur**, c'est `routes/` et `controllers/` (avec `services/` pour la logique).
-
-### Schéma de la base
-
-```
-users ──< user_roles >── roles                 (plusieurs à plusieurs)
-users ──< user_games >── games >── publishers  (plusieurs à plusieurs, puis plusieurs à un)
-              │
-              └── config_id ──► MongoDB : game_configs { userId, gameId, settings }
-```
-
-- La librairie (`user_games`) a une clé primaire `(user_id, game_id)` : on ne peut pas avoir deux fois le même jeu.
-- Quand on supprime un jeu ou un utilisateur, ses lignes de librairie partent avec (`ON DELETE CASCADE`).
-- On ne peut pas supprimer un éditeur qui a encore des jeux (`ON DELETE RESTRICT`).
-
----
-
-## 9. Routes et droits
-
-Toutes les routes commencent par `/api`. Pour les routes protégées, il faut envoyer l'en-tête `Authorization: Bearer <token>`.
-
-| Méthode | Route | Qui peut l'utiliser | Ce qu'elle fait |
-|---|---|---|---|
-| POST | `/auth/register` | Tout le monde | Créer un compte |
-| POST | `/auth/login` | Tout le monde | Se connecter (renvoie un token JWT) |
-| GET | `/games` | Tout le monde | Lister les jeux |
-| GET | `/games/:id` | Tout le monde | Voir un jeu |
-| POST | `/games` | Admin | Ajouter un jeu |
-| PATCH | `/games/:id` | Admin | Modifier un jeu |
-| DELETE | `/games/:id` | Admin | Supprimer un jeu |
-| GET | `/users/:userId/library` | Le joueur lui-même ou un admin | Voir une librairie |
-| POST | `/users/:userId/library` | Admin | Ajouter un jeu dans la librairie d'un joueur |
-| DELETE | `/users/:userId/library/:gameId` | Le joueur lui-même ou un admin | Retirer un jeu de la librairie |
-| GET | `/users/:userId/library/:gameId/config` | Le joueur lui-même ou un admin | Voir les réglages d'un jeu |
-| PUT | `/users/:userId/library/:gameId/config` | Le joueur lui-même ou un admin | Enregistrer les réglages d'un jeu |
-
-Codes de réponse : `200` OK, `201` créé, `204` supprimé, `400` données invalides, `401` pas connecté, `403` pas le droit, `404` introuvable, `409` existe déjà, `413` requête trop grosse.
-
-Les erreurs ont toujours la même forme :
-
-```json
-{ "error": { "code": "NOT_FOUND", "message": "Jeu introuvable" } }
-```
-
----
-
-## 10. Sécurité
-
-- Les **mots de passe** sont hachés avec bcrypt. Ils ne sont jamais stockés ni renvoyés en clair.
-- Le **JWT est stateless** : le token signé contient l'id et les rôles, le serveur ne garde aucune session. Il est valable 2 heures.
-- **Rôles** : l'admin gère le catalogue et les librairies, un joueur n'a accès qu'à **sa** librairie.
-- **Injection SQL** : toutes les requêtes passent par Sequelize, qui utilise des requêtes paramétrées.
-- **Injection NoSQL** : on refuse les clés qui commencent par `$` au premier niveau des réglages, et les recherches MongoDB n'utilisent que des id déjà vérifiés.
-- Toutes les données reçues sont **vérifiées**, et les champs inconnus sont ignorés.
-- En cas de **bug**, le client ne voit pas le détail de l'erreur (il est juste affiché dans le terminal du serveur).
-- **Limites** : 100 Ko maximum par requête, et les connexions trop lentes sont coupées.
-- **HTTPS** : tout est chiffré, le token et les mots de passe ne passent jamais en clair. Le HTTP simple est refusé.
-- Les **secrets** sont dans `.env` et la clé privée dans `certs/`, les deux exclus de Git.
-
-> **Pas encore fait** : CORS, en-têtes de sécurité (helmet) et limite du nombre de tentatives de connexion (rate limiting).
-
----
-
-## 11. Tests
-
-### 11.1 Tests automatisés
+### 8.1 Tests automatisés
 
 > **Pas encore fait** : tests automatisés (un test par route) et rapport de couverture, lancés avec `npm test`.
 
-### 11.2 Test de charge (JMeter)
+### 8.2 Test de charge (JMeter)
 
 Il faut : Java et JMeter installés (partie 2), `JMETER_HOME` dans le `.env`, et les données de test (`npm run db:seed`).
 
@@ -437,7 +332,7 @@ Les résultats et leur analyse sont dans l'annexe (partie 5.3). On peut aussi ou
 
 ---
 
-## 12. Sauvegardes
+## 9. Sauvegardes
 
 On sauvegarde les deux bases (celles de Docker) **dans la même commande**, l'une juste après l'autre, pour qu'elles restent cohérentes entre elles. Le plan complet et pourquoi on l'a fait comme ça sont dans l'annexe (partie 8).
 

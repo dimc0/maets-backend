@@ -182,8 +182,6 @@ Ce que j'ai vérifié : une requête HTTPS avec le certificat répond 200, une r
 
 Sans HTTPS, le token JWT et les mots de passe passeraient en clair sur le réseau.
 
-**En production**, on remplace le certificat auto-signé par un certificat d'une autorité reconnue pour le nom de domaine (Let's Encrypt, gratuit et renouvelé automatiquement). On peut mettre un serveur web (Nginx) devant l'API pour gérer le HTTPS et rediriger le HTTP vers le HTTPS. La clé privée n'est lisible que par l'utilisateur système de l'application.
-
 ---
 
 ## 5. Base relationnelle PostgreSQL
@@ -275,7 +273,7 @@ Le *p95*, c'est le temps sous lequel répondent 95 % des requêtes. En gros, c'e
 - **Des données de test anonymes** : elles sont générées par Faker, les emails sont en `@example.com` (un domaine réservé aux exemples), il n'y a aucune donnée réelle, et la graine est fixe pour avoir les mêmes données sur chaque poste.
 - **Injection SQL** : toutes les requêtes passent par Sequelize, qui envoie les valeurs à part de la requête (requêtes paramétrées). Aucune valeur venant du client n'est collée dans du texte SQL.
 - **Mots de passe** hachés avec bcrypt (coût 10, avec un sel aléatoire).
-- **Le moins de droits possible** : sans Docker, l'application se connecte avec l'utilisateur `maets`, qui n'a des droits que sur sa base, et jamais avec le compte administrateur `postgres`. Avec Docker, l'image PostgreSQL fait de `maets` l'administrateur du conteneur, mais ce conteneur ne contient que la base du projet. En production, on créerait en plus un utilisateur sans droits d'administration pour l'application.
+- **Le moins de droits possible** : sans Docker, l'application se connecte avec l'utilisateur `maets`, qui n'a des droits que sur sa base, et jamais avec le compte administrateur `postgres`. Avec Docker, l'image PostgreSQL fait de `maets` l'administrateur du conteneur, mais ce conteneur ne contient que la base du projet.
 ---
 
 ## 6. Base NoSQL MongoDB
@@ -418,10 +416,10 @@ La limite du POC : la tâche ne tourne que si le PC est allumé, branché sur se
 ### 8.2 Sécurité et continuité
 
 - **La librairie est la donnée la plus importante** : perdre « quel joueur possède quel jeu », c'est faire perdre leurs jeux aux joueurs. Dans une version commerciale, ce seraient des achats, avec des conséquences financières et juridiques. Ces données sont dans PostgreSQL et sauvegardées tous les jours.
-- **Les comptes** (emails, hash des mots de passe) sont des données personnelles. Les sauvegardes sont donc exclues de Git (`.gitignore`) et ne doivent jamais être partagées. En production, elles seraient chiffrées avant d'être copiées hors du serveur, avec un accès aussi restreint que la base elle-même (RGPD).
+- **Les comptes** (emails, hash des mots de passe) sont des données personnelles. Les sauvegardes sont donc exclues de Git (`.gitignore`) et ne doivent jamais être partagées.
 - **Les configurations** sont moins importantes (un joueur peut refaire ses réglages), mais on les sauvegarde au même moment pour rester cohérent avec les `config_id`.
 - PostgreSQL et MongoDB sont sauvegardés **dans la même exécution** et restaurés ensemble, donc une restauration redonne deux bases cohérentes entre elles (vérifié : aucun lien cassé).
-- Une sauvegarde qu'on n'a jamais testée ne sert à rien : j'ai testé la restauration sur des données abîmées exprès, et en production on referait ce test tous les mois.
+- Une sauvegarde qu'on n'a jamais testée ne sert à rien : j'ai testé la restauration sur des données abîmées exprès.
 
 ---
 
@@ -486,5 +484,5 @@ Les URL décrivent des ressources (« la librairie de l'utilisateur 2 »), le ve
 ## 12. Documentation
 
 - **Swagger** : https://localhost:3000/api/docs. Chaque route y est décrite (paramètres, corps attendu, réponses possibles, exemples), et on peut la tester directement, même les routes protégées grâce au bouton *Authorize*. La description est au format standard OpenAPI 3 (`docs/openapi.json`).
-- **Le README** : l'installation, les commandes, l'organisation du code, les routes et les droits.
+- **Le README** : l'installation, le lancement de l'API, les comptes de test et toutes les commandes.
 - **Cette annexe** : l'explication des choix techniques.
