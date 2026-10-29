@@ -26,15 +26,17 @@ async function start() {
     server.headersTimeout = 10000;
     server.keepAliveTimeout = 5000;
 
-    // Ctrl+C : on finit les requêtes en cours, puis on ferme les bases
-    process.on('SIGINT', () => {
+    // Arrêt propre : on finit les requêtes en cours, puis on ferme les bases
+    function shutdown() {
       server.close(async () => {
         await sequelize.close();
         await disconnectMongo();
         console.log('Serveur arrêté.');
         process.exit(0);
       });
-    });
+    }
+    process.on('SIGINT', shutdown); // Ctrl+C
+    process.on('SIGTERM', shutdown); // arrêt envoyé par le serveur (systemd, Docker)
   } catch (error) {
     console.error('Impossible de démarrer :', error.message);
     process.exit(1);

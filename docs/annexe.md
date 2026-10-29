@@ -162,7 +162,7 @@ Pour comparer, la base de démo actuelle fait moins de 10 Mo.
 | Pool de connexions PostgreSQL | 10 max, 0 min, fermeture après 10 s sans activité | Mémoire (côté PostgreSQL) | Les connexions sont réutilisées. Chaque connexion coûte de la mémoire à PostgreSQL, qui en accepte 100 par défaut : avec 10, il reste de la place pour les outils (pgAdmin, sauvegardes) et d'autres instances |
 | Pool de connexions MongoDB | 10 max | Mémoire | Même idée |
 | Délais HTTP | requête 30 s, en-têtes 10 s, connexion inactive 5 s | Mémoire | Les connexions lentes ou abandonnées ne restent pas ouvertes (ça protège aussi contre l'attaque « Slowloris ») |
-| Arrêt propre | sur `Ctrl+C` (signal SIGINT) | Fiabilité | Les requêtes en cours se terminent, puis on ferme les connexions aux bases. Sur un serveur, systemd et Docker envoient SIGTERM : il faudrait l'ajouter (une ligne dans `server.js`) |
+| Arrêt propre | sur `Ctrl+C` (SIGINT) et sur l'arrêt envoyé par le serveur (SIGTERM, utilisé par systemd et Docker) | Fiabilité | Les requêtes en cours se terminent, puis on ferme les connexions aux bases |
 
 **Si la charge augmente** : on peut lancer plusieurs instances de l'API derrière un répartiteur de charge. Comme le JWT est stateless, n'importe quelle instance peut traiter n'importe quelle requête. Il faut juste garder le nombre d'instances fois 10 connexions sous la limite de PostgreSQL.
 
