@@ -1,0 +1,284 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "API Maets",
+    "version": "1.0.0",
+    "description": "POC back-end de Maets, une librairie de jeux vidéo.\n\n- **PostgreSQL** : utilisateurs, rôles, éditeurs, jeux et librairies.\n- **MongoDB** : configuration de chaque jeu pour chaque joueur.\n\n**Authentification** : se connecter avec `POST /api/auth/login`, copier le `token` reçu, puis cliquer sur **Authorize** et le coller. Le token est valable 2 heures.\n\n**Rôles** : `user` (joueur) et `admin`."
+  },
+  "servers": [{ "url": "https://localhost:3000", "description": "Développement (HTTPS, certificat auto-signé)" }],
+  "tags": [
+    { "name": "Authentification", "description": "Inscription et connexion" },
+    { "name": "Jeux", "description": "Catalogue de la plateforme" },
+    { "name": "Librairie", "description": "Jeux possédés par un utilisateur" },
+    { "name": "Configuration", "description": "Réglages d'un jeu possédé (stockés dans MongoDB)" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "parameters": {
+      "gameIdPath": { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 }, "example": 1 },
+      "userId": { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 }, "example": 2 },
+      "gameId": { "name": "gameId", "in": "path", "required": true, "schema": { "type": "integer", "minimum": 1 }, "example": 5 }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "NOT_FOUND" },
+              "message": { "type": "string", "example": "Jeu introuvable" },
+              "details": { "type": "object", "description": "Champs invalides (erreurs de validation uniquement)", "example": { "title": "Champ obligatoire" } }
+            }
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 2 },
+          "email": { "type": "string", "example": "joueur1@example.com" },
+          "roles": { "type": "array", "items": { "type": "string", "enum": ["user", "admin"] }, "example": ["user"] }
+        }
+      },
+      "Credentials": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": { "type": "string", "format": "email", "example": "nouveau@example.com" },
+          "password": { "type": "string", "minLength": 8, "example": "MotDePasse123" }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+          "user": { "$ref": "#/components/schemas/User" }
+        }
+      },
+      "Publisher": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 3 },
+          "name": { "type": "string", "example": "Jacquet et Morel" }
+        }
+      },
+      "Game": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "title": { "type": "string", "example": "Splendide camarade 1" },
+          "description": { "type": "string", "nullable": true, "example": "Un jeu d'aventure." },
+          "releaseDate": { "type": "string", "format": "date", "nullable": true, "example": "2019-11-09" },
+          "publisher": { "$ref": "#/components/schemas/Publisher" }
+        }
+      },
+      "GameInput": {
+        "type": "object",
+        "description": "Pour POST : title et publisherId obligatoires. Pour PATCH : seulement les champs à modifier. Tout autre champ est ignoré.",
+        "properties": {
+          "title": { "type": "string", "maxLength": 150, "example": "Mon nouveau jeu" },
+          "description": { "type": "string", "nullable": true, "example": "Un jeu de course." },
+          "releaseDate": { "type": "string", "format": "date", "nullable": true, "example": "2026-03-15" },
+          "publisherId": { "type": "integer", "minimum": 1, "example": 1 }
+        }
+      },
+      "LibraryEntry": {
+        "type": "object",
+        "properties": {
+          "game": { "$ref": "#/components/schemas/Game" },
+          "addedAt": { "type": "string", "format": "date-time", "example": "2026-10-27T10:14:08.738Z" }
+        }
+      },
+      "Config": {
+        "type": "object",
+        "properties": {
+          "gameId": { "type": "integer", "example": 5 },
+          "settings": { "type": "object", "description": "Forme libre, différente selon le jeu", "example": { "graphics": { "quality": "high", "fov": 90 }, "mouse": { "sensitivity": 3 } } },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ConfigInput": {
+        "type": "object",
+        "required": ["settings"],
+        "properties": {
+          "settings": { "type": "object", "description": "Objet JSON libre. Les clés de premier niveau commençant par \"$\" sont refusées.", "example": { "graphics": { "fov": 90 }, "subtitles": { "language": "fr" } } }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": { "description": "Données ou paramètre invalides", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Unauthorized": { "description": "Token absent, invalide ou expiré", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Forbidden": { "description": "Connecté, mais pas les droits (admin ou propriétaire requis)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "NotFound": { "description": "Ressource introuvable", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Conflict": { "description": "Valeur déjà utilisée (email, titre, jeu déjà possédé)", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    }
+  },
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Authentification"],
+        "summary": "Créer un compte",
+        "description": "Crée un compte avec le rôle `user`. Le mot de passe est stocké haché (bcrypt).",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Credentials" } } } },
+        "responses": {
+          "201": { "description": "Compte créé", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": ["Authentification"],
+        "summary": "Se connecter",
+        "description": "Renvoie un token JWT (valable 2 h) contenant l'id et les rôles.",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Credentials" } } } },
+        "responses": {
+          "200": { "description": "Connexion réussie", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LoginResponse" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "description": "Email ou mot de passe incorrect", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+        }
+      }
+    },
+    "/api/games": {
+      "get": {
+        "tags": ["Jeux"],
+        "summary": "Lister les jeux",
+        "description": "Public. Tous les jeux, triés par titre, avec leur éditeur.",
+        "responses": {
+          "200": { "description": "Liste des jeux", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Game" } } } } }
+        }
+      },
+      "post": {
+        "tags": ["Jeux"],
+        "summary": "Ajouter un jeu (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GameInput" } } } },
+        "responses": {
+          "201": { "description": "Jeu créé", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Game" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/games/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/gameIdPath" }],
+      "get": {
+        "tags": ["Jeux"],
+        "summary": "Obtenir un jeu",
+        "description": "Public.",
+        "responses": {
+          "200": { "description": "Le jeu", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Game" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "patch": {
+        "tags": ["Jeux"],
+        "summary": "Modifier un jeu (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GameInput" } } } },
+        "responses": {
+          "200": { "description": "Jeu modifié", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Game" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      },
+      "delete": {
+        "tags": ["Jeux"],
+        "summary": "Supprimer un jeu (admin)",
+        "description": "Retire aussi le jeu de toutes les librairies et supprime ses configurations MongoDB.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "204": { "description": "Jeu supprimé" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/users/{userId}/library": {
+      "parameters": [{ "$ref": "#/components/parameters/userId" }],
+      "get": {
+        "tags": ["Librairie"],
+        "summary": "Consulter une librairie (propriétaire ou admin)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Jeux possédés, du plus récent au plus ancien", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/LibraryEntry" } } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "post": {
+        "tags": ["Librairie"],
+        "summary": "Ajouter un jeu à la librairie d'un utilisateur (admin)",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "type": "object", "required": ["gameId"], "properties": { "gameId": { "type": "integer", "minimum": 1, "example": 5 } } } } } },
+        "responses": {
+          "201": { "description": "Jeu ajouté", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LibraryEntry" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      }
+    },
+    "/api/users/{userId}/library/{gameId}": {
+      "parameters": [{ "$ref": "#/components/parameters/userId" }, { "$ref": "#/components/parameters/gameId" }],
+      "delete": {
+        "tags": ["Librairie"],
+        "summary": "Retirer un jeu de sa librairie (propriétaire ou admin)",
+        "description": "Supprime aussi la configuration MongoDB de ce jeu.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "204": { "description": "Jeu retiré" },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/api/users/{userId}/library/{gameId}/config": {
+      "parameters": [{ "$ref": "#/components/parameters/userId" }, { "$ref": "#/components/parameters/gameId" }],
+      "get": {
+        "tags": ["Configuration"],
+        "summary": "Obtenir la configuration d'un jeu (propriétaire ou admin)",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "La configuration", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Config" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      },
+      "put": {
+        "tags": ["Configuration"],
+        "summary": "Enregistrer la configuration d'un jeu (propriétaire ou admin)",
+        "description": "Crée la configuration la première fois, la remplace ensuite. Le jeu doit être dans la librairie.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ConfigInput" } } } },
+        "responses": {
+          "200": { "description": "Configuration enregistrée", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Config" } } } },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    }
+  }
+}

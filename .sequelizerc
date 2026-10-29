@@ -1,0 +1,8 @@
+// Seul fichier en require/module.exports : sequelize-cli l'impose
+const path = require('path');
+
+module.exports = {
+  config: path.resolve('src', 'config', 'database.js'),
+  'migrations-path': path.resolve('database', 'migrations'),
+  'seeders-path': path.resolve('database', 'seeders'),
+};

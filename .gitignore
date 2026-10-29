@@ -1,0 +1,17 @@
+# Dépendances (réinstallées avec npm install)
+node_modules/
+
+# Configuration locale et secrets
+.env
+
+# Certificat HTTPS (la clé privée ne doit jamais être partagée)
+certs/
+
+# Sauvegardes des bases (données personnelles : ne jamais les partager)
+backups/
+
+# Rapports du test de charge (régénérés par npm run load-test)
+load-test/reports/
+
+# Journal de JMeter
+jmeter.log

@@ -1,0 +1,52 @@
+{
+  // Raccourcis de code du projet : taper le préfixe dans un fichier .js puis Tab ou Entrée.
+  // Ils suivent l'architecture route → controller → service → repository.
+  "Fonction de controller": {
+    "scope": "javascript",
+    "prefix": "mctrl",
+    "description": "Controller : lit la requête, appelle le service, renvoie la réponse",
+    "body": [
+      "export async function ${1:nom}(req, res) {",
+      "  const result = await ${2:ressource}Service.${1:nom}(${3:req.params.id});",
+      "  res.json(result);",
+      "}"
+    ]
+  },
+  "Fonction de service": {
+    "scope": "javascript",
+    "prefix": "mservice",
+    "description": "Service : vérifications, erreurs, appel du repository, DTO",
+    "body": [
+      "export async function ${1:nom}(${2:rawId}) {",
+      "  const id = parseId(${2:rawId});",
+      "  const item = await ${3:ressource}Repository.${4:findById}(id);",
+      "  if (!item) {",
+      "    throw new NotFoundError('${5:Ressource introuvable}');",
+      "  }",
+      "  return ${6:toDto}(item);",
+      "}"
+    ]
+  },
+  "Fonction de repository": {
+    "scope": "javascript",
+    "prefix": "mrepo",
+    "description": "Repository : uniquement l'accès à la base",
+    "body": [
+      "export async function ${1:findById}(${2:id}) {",
+      "  return await ${3:Model}.${4:findByPk}(${2:id});",
+      "}"
+    ]
+  },
+  "Route protégée": {
+    "scope": "javascript",
+    "prefix": "mroute",
+    "description": "Route avec authentification (et rôle admin)",
+    "body": ["router.${1|get,post,patch,put,delete|}('${2:/}', authRequired, ${3:requireAdmin}, ${4:controller}.${5:nom});"]
+  },
+  "Erreur métier": {
+    "scope": "javascript",
+    "prefix": "merr",
+    "description": "Lever une erreur de l'API (attrapée par errorHandler)",
+    "body": ["throw new ${1|NotFoundError,BadRequestError,ConflictError,UnauthorizedError,ForbiddenError|}('${2:message}');"]
+  }
+}

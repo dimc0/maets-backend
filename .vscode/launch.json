@@ -1,0 +1,26 @@
+{
+  // Débogage : onglet "Exécuter et déboguer" (Ctrl+Maj+D), choisir la configuration, puis F5.
+  // On peut alors poser des points d'arrêt (clic à gauche d'un numéro de ligne).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Déboguer l'API",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/server.js",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Déboguer les seeders",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/sequelize-cli/lib/sequelize",
+      "args": ["db:seed:all"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}

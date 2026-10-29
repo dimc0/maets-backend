@@ -1,0 +1,25 @@
+{
+  // Extensions proposées automatiquement à l'ouverture du projet
+  // (notification "Ce dossier recommande des extensions" → Installer tout)
+  "recommendations": [
+    // Interface en français
+    "ms-ceintl.vscode-language-pack-fr",
+    // Icônes de fichiers (utilisées par settings.json)
+    "pkief.material-icon-theme",
+    // Coloration des fichiers .env
+    "mikestead.dotenv",
+    // Autocomplétion des chemins dans les imports
+    "christian-kohler.path-intellisense",
+    // Autocomplétion des noms de paquets npm dans les imports
+    "christian-kohler.npm-intellisense",
+    // Explorer et interroger PostgreSQL depuis VS Code
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg",
+    // Explorer les documents MongoDB (game_configs) depuis VS Code
+    "mongodb.mongodb-vscode",
+    // Tester l'API avec des fichiers .http
+    "humao.rest-client"
+  ],
+  // Prettier non configuré changerait le style du code (guillemets) : déconseillé ici
+  "unwantedRecommendations": ["esbenp.prettier-vscode"]
+}

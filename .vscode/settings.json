@@ -1,0 +1,54 @@
+{
+  // Réglages imposés à toute l'équipe pour ce projet (ils remplacent les réglages
+  // personnels de chacun uniquement quand le dossier Maets est ouvert).
+
+  // --- Apparence ---
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.iconTheme": "material-icon-theme",
+  "editor.fontSize": 14,
+  "editor.rulers": [120],
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.renderWhitespace": "boundary",
+
+  // --- Indentation : 2 espaces partout ---
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+
+  // --- Formatage automatique à l'enregistrement ---
+  // Formateur intégré de VS Code : il garde les guillemets simples du projet
+  // (un Prettier non configuré les remplacerait par des doubles).
+  "editor.formatOnSave": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // --- Autocomplétion JavaScript (modules ES) ---
+  // Les imports générés automatiquement se terminent par .js, obligatoire avec "type": "module"
+  "javascript.preferences.importModuleSpecifierEnding": "js",
+  "javascript.preferences.quoteStyle": "single",
+  "javascript.suggest.autoImports": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+
+  // --- Explorateur et recherche ---
+  "files.associations": {
+    ".env.example": "dotenv",
+    ".sequelizerc": "javascript"
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/package-lock.json": true
+  },
+
+  // --- Terminal intégré ---
+  "terminal.integrated.defaultProfile.windows": "PowerShell"
+}
