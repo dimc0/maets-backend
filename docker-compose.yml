@@ -3,7 +3,7 @@
 #
 # Utilisateur, mot de passe et nom de la base PostgreSQL sont lus dans le fichier .env.
 # Ports 5433 et 27018 : ils ne gênent pas un PostgreSQL (5432) ou un MongoDB (27017)
-# déjà installés sur le poste. Dans .env : DB_PORT=5433 et MONGODB_URI=mongodb://127.0.0.1:27018/maets
+# déjà installés sur le poste. Ce sont les valeurs par défaut de .env.example.
 
 services:
   postgres:

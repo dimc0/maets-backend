@@ -129,14 +129,7 @@ node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 
 ### 3.3 A. Les bases avec Docker
 
-Docker Desktop doit être lancé. Dans le `.env`, on met les ports des conteneurs :
-
-```
-DB_PORT=5433
-MONGODB_URI=mongodb://127.0.0.1:27018/maets
-```
-
-Puis :
+Docker Desktop doit être lancé. Le `.env` copié depuis `.env.example` a déjà les bons ports (5433 et 27018), il n'y a rien à changer. Puis :
 
 ```powershell
 docker compose up -d --wait
@@ -159,6 +152,8 @@ On a pris les ports 5433 et 27018 pour ne pas gêner un PostgreSQL ou un MongoDB
 Ensuite, on passe directement à l'étape 3.5.
 
 ### 3.3 B. Les bases installées sur le poste (sans Docker)
+
+Dans le `.env`, on remet les ports par défaut des bases installées : `DB_PORT=5432` et `MONGODB_URI=mongodb://127.0.0.1:27017/maets`.
 
 Avec le compte `postgres` (son mot de passe a été choisi à l'installation), on crée un utilisateur et une base rien que pour le projet. Le mot de passe doit être le même que `DB_PASS` :
 
